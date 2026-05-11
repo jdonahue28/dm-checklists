@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>David — District Manager Checklist</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand:   #1F3864;
+    --brand2:  #2E5FA3;
+    --bg:      #ffffff;
+    --bg2:     #f4f4f4;
+    --bg3:     #e8e8e8;
+    --text:    #1a1a1a;
+    --muted:   #616161;
+    --border:  #d0d0d0;
+    --pass-bg: #e6f4ea; --pass-fg: #1e7145; --pass-bd: #a8d5b5;
+    --warn-bg: #fff8e1; --warn-fg: #7f6000; --warn-bd: #ffe082;
+    --info-bg: #e3eeff; --info-fg: #1a56a4; --info-bd: #90b8f8;
+    --fail-bg: #fdecea; --fail-fg: #b00020; --fail-bd: #f5a0a0;
+    --radius:  8px;
+    --font:    'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  }
+  body { font-family: var(--font); background: var(--bg2); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  .hdr { background: var(--brand); color: #fff; padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .hdr h1 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .hdr-icon { width: 20px; height: 20px; }
+  .hdr .sub { font-size: 11px; opacity: .75; margin-top: 2px; }
+  .hdr-date { font-size: 11px; opacity: .8; text-align: right; }
+
+  .page { max-width: 780px; margin: 0 auto; padding: 14px 16px 40px; }
+
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+  .stat { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .stat-lbl { font-size: 10px; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat-val { font-size: 18px; font-weight: 600; color: var(--text); }
+
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+  .card-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+  .prog-wrap { margin-bottom: 10px; }
+  .prog-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .prog-track { height: 6px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .prog-fill { height: 6px; border-radius: 4px; background: var(--pass-fg); transition: width .35s ease; }
+
+  .checklist { display: flex; flex-direction: column; gap: 5px; }
+  .ci { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); cursor: pointer; user-select: none; transition: background .12s; }
+  .ci:hover { background: var(--bg2); }
+  .ci.done { background: var(--pass-bg); border-color: var(--pass-bd); }
+  .ci-box { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg); transition: all .12s; }
+  .ci.done .ci-box { background: var(--pass-fg); border-color: var(--pass-fg); }
+  .ci-check { display: none; }
+  .ci.done .ci-check { display: block; }
+  .ci-text { font-size: 13px; color: var(--text); flex: 1; line-height: 1.4; }
+  .ci.done .ci-text { color: var(--pass-fg); text-decoration: line-through; text-decoration-color: var(--pass-bd); }
+  .ci-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 700; flex-shrink: 0; white-space: nowrap; }
+  .t-daily { background: var(--info-bg); color: var(--info-fg); }
+  .t-focus { background: var(--warn-bg); color: var(--warn-fg); }
+  .t-ops   { background: var(--bg3); color: var(--muted); }
+
+  .grp-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 10px 2px 5px; }
+
+  .tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tab { font-size: 12px; padding: 6px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-family: var(--font); font-weight: 500; transition: background .12s; }
+  .tab.active { background: var(--info-bg); color: var(--info-fg); border-color: var(--info-bd); font-weight: 700; }
+  .tab:hover:not(.active) { background: var(--bg2); }
+  .tab.today-tab { border-color: var(--pass-bd); }
+
+  .btn-reset { font-size: 11px; padding: 5px 11px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 5px; }
+  .btn-reset:hover { background: var(--bg2); }
+
+  .btn-submit { width: 100%; padding: 13px; border-radius: var(--radius); border: none; background: var(--brand); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; }
+  .btn-submit:hover { opacity: .88; }
+  .btn-submit:disabled { opacity: .45; cursor: not-allowed; }
+
+  .submit-status { margin-top: 8px; padding: 10px 13px; border-radius: var(--radius); font-size: 13px; text-align: center; display: none; font-weight: 600; }
+  .s-ok  { background: var(--pass-bg); color: var(--pass-fg); border: 1px solid var(--pass-bd); display: block; }
+  .s-err { background: var(--fail-bg); color: var(--fail-fg); border: 1px solid var(--fail-bd); display: block; }
+
+  .all-done { display: none; background: var(--pass-bg); border: 1px solid var(--pass-bd); border-radius: var(--radius); padding: 11px 14px; font-size: 13px; font-weight: 700; color: var(--pass-fg); margin-top: 8px; text-align: center; }
+  .all-done.show { display: block; }
+
+  .week-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+  .wk-col { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .wk-hdr { padding: 7px 6px; font-size: 11px; font-weight: 700; text-align: center; background: var(--bg2); border-bottom: 1px solid var(--border); color: var(--text); }
+  .wk-hdr.today { background: var(--info-bg); color: var(--info-fg); }
+  .wk-body { padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+  .wk-pill { font-size: 10px; padding: 3px 5px; border-radius: 4px; line-height: 1.4; color: var(--muted); background: var(--bg2); }
+  .wk-pill.focus { background: var(--info-bg); color: var(--info-fg); }
+
+  @media (max-width:520px) {
+    .stats { grid-template-columns: repeat(2,1fr); }
+    .week-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>
+      <svg class="hdr-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg>
+      District Manager Checklist
+    </h1>
+    <div class="sub" id="dmSub">David — Vantedge Auto</div>
+  </div>
+  <div class="hdr-date" id="hdrDate"></div>
+</div>
+
+<div class="page">
+
+  <div class="stats">
+    <div class="stat"><div class="stat-lbl">Daily items</div><div class="stat-val" id="sDail">0/5</div></div>
+    <div class="stat"><div class="stat-lbl">Day-specific</div><div class="stat-val" id="sSpec">—</div></div>
+    <div class="stat"><div class="stat-lbl">Today</div><div class="stat-val" id="sToday">—</div></div>
+    <div class="stat"><div class="stat-lbl">Week of</div><div class="stat-val" id="sWeek">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">Daily focus items <span style="font-weight:400;text-transform:none;font-size:10px">(every day)</span></div>
+      <button class="btn-reset" onclick="resetAll()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Reset
+      </button>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-row"><span id="dProgTxt">0 of 5 complete</span><span id="dProgPct">0%</span></div>
+      <div class="prog-track"><div class="prog-fill" id="dProgFill" style="width:0%"></div></div>
+    </div>
+    <div class="checklist" id="dailyList"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px">Day-specific items</div>
+    <div class="tabs" id="dayTabs"></div>
+    <div class="prog-wrap" id="sProgWrap" style="display:none">
+      <div class="prog-row"><span id="sProgTxt"></span><span id="sProgPct"></span></div>
+      <div class="prog-track"><div class="prog-fill" id="sProgFill" style="width:0%;background:var(--brand2)"></div></div>
+    </div>
+    <div id="dayChecklist"></div>
+    <div class="all-done" id="allDone">&#10003; All items complete — great leadership today!</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px">Submit daily check-in to Regional Director</div>
+    <button class="btn-submit" id="submitBtn" onclick="submitCheckin()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Submit today's check-in
+    </button>
+    <div class="submit-status" id="submitStatus"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="margin-bottom:10px">Week at a glance</div>
+    <div class="week-grid" id="weekGrid"></div>
+  </div>
+
+</div>
+
+<script>
+const DM_NAME   = "David";
+const SHEET_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE";
+
+const DAILY = [
+  {id:'d1', text:'Daily huddle with your team'},
+  {id:'d2', text:'Morning recap sent to Jason'},
+  {id:'d3', text:'Labor file updated'},
+  {id:'d4', text:'Depth chart updated'},
+  {id:'d5', text:'Time cards reviewed and submitted'},
+];
+
+const WEEK = {
+  Monday:    {focus:['Deposits completed and prepared for shipment','District call with shops'],                               ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Tuesday:   {focus:['Leadership call'],                                                                                       ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Wednesday: {focus:['Morning huddle focus and team development','Week to date KPI review and labor — adjustments if needed'], ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Thursday:  {focus:['Morning huddle','Captainship call','Book club meeting'],                                                 ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Friday:    {focus:['Morning huddle','Finish the week strong and prepare for the upcoming week'],                             ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+};
+
+const DAYS = Object.keys(WEEK);
+const SKEY = 'dmcl_' + DM_NAME;
+let S = {}, activeDay = null;
+
+function load(){ try{S=JSON.parse(localStorage.getItem(SKEY)||'{}');}catch(e){S={};} }
+function save(){ try{localStorage.setItem(SKEY,JSON.stringify(S));}catch(e){} }
+function todayName(){ return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()]; }
+function weekOf(){ const n=new Date(),d=n.getDay(),m=new Date(n); m.setDate(n.getDate()-(d||7)+1); return m.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function iid(day,g,i){ return day+'_'+g+'_'+i; }
+function allIds(day){ const d=WEEK[day]; if(!d) return []; const r=[]; (d.focus||[]).forEach(function(_,i){r.push(iid(day,'focus',i));}); (d.ops||[]).forEach(function(_,i){r.push(iid(day,'ops',i));}); return r; }
+
+function checkSVG(){ return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'; }
+
+function mkItem(id, text, tagCls, tagTxt){
+  var done=!!S[id];
+  var el=document.createElement('div');
+  el.className='ci'+(done?' done':'');
+  el.setAttribute('role','checkbox');
+  el.setAttribute('aria-checked',''+done);
+  el.setAttribute('tabindex','0');
+  el.innerHTML='<div class="ci-box"><span class="ci-check" style="color:#fff">'+checkSVG()+'</span></div>'
+    +'<span class="ci-text">'+text+'</span>'
+    +'<span class="ci-tag '+tagCls+'">'+tagTxt+'</span>';
+  var fn=function(){S[id]=!S[id];save();renderAll();};
+  el.onclick=fn;
+  el.onkeydown=function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();fn();}};
+  return el;
+}
+
+function renderDaily(){
+  var list=document.getElementById('dailyList'); list.innerHTML='';
+  var done=0; DAILY.forEach(function(i){if(S[i.id])done++;});
+  var pct=Math.round(done/DAILY.length*100);
+  document.getElementById('dProgTxt').textContent=done+' of '+DAILY.length+' complete';
+  document.getElementById('dProgPct').textContent=pct+'%';
+  document.getElementById('dProgFill').style.width=pct+'%';
+  document.getElementById('sDail').textContent=done+'/'+DAILY.length;
+  DAILY.forEach(function(it){list.appendChild(mkItem(it.id,it.text,'t-daily','Daily'));});
+}
+
+function renderTabs(){
+  var today=todayName();
+  if(!activeDay) activeDay=DAYS.indexOf(today)>=0?today:'Monday';
+  var wrap=document.getElementById('dayTabs'); wrap.innerHTML='';
+  DAYS.forEach(function(day){
+    var isT=day===today;
+    var b=document.createElement('button');
+    b.className='tab'+(day===activeDay?' active':'')+(isT?' today-tab':'');
+    b.textContent=day+(isT?' ●':'');
+    b.onclick=function(){activeDay=day;renderTabs();renderDayList();};
+    wrap.appendChild(b);
+  });
+}
+
+function renderDayList(){
+  var day=activeDay, d=WEEK[day];
+  var wrap=document.getElementById('dayChecklist'); wrap.innerHTML='';
+  if(!d) return;
+  var ids=allIds(day), doneCt=0;
+  ids.forEach(function(id){if(S[id])doneCt++;});
+  var total=ids.length, pct=Math.round(doneCt/total*100);
+  document.getElementById('sProgWrap').style.display='block';
+  document.getElementById('sProgTxt').textContent=doneCt+' of '+total+' complete';
+  document.getElementById('sProgPct').textContent=pct+'%';
+  document.getElementById('sProgFill').style.width=pct+'%';
+  document.getElementById('sSpec').textContent=doneCt+'/'+total;
+
+  [{lbl:'Focus items',key:'focus',tc:'t-focus',tt:'Focus'},{lbl:'Operational items',key:'ops',tc:'t-ops',tt:'Ops'}].forEach(function(g){
+    var items=d[g.key]||[]; if(!items.length) return;
+    var lbl=document.createElement('div'); lbl.className='grp-lbl'; lbl.textContent=g.lbl; wrap.appendChild(lbl);
+    var ul=document.createElement('div'); ul.className='checklist';
+    items.forEach(function(t,i){ul.appendChild(mkItem(iid(day,g.key,i),t,g.tc,g.tt));});
+    wrap.appendChild(ul);
+  });
+  var dd=0; DAILY.forEach(function(i){if(S[i.id])dd++;});
+  document.getElementById('allDone').className='all-done'+(doneCt===total&&dd===DAILY.length?' show':'');
+}
+
+function renderWeek(){
+  var today=todayName(), grid=document.getElementById('weekGrid'); grid.innerHTML='';
+  DAYS.forEach(function(day){
+    var d=WEEK[day], isT=day===today;
+    var col=document.createElement('div'); col.className='wk-col';
+    var pills='';
+    (d.focus||[]).forEach(function(t){pills+='<div class="wk-pill focus">'+t+'</div>';});
+    (d.ops||[]).forEach(function(t){pills+='<div class="wk-pill">'+t+'</div>';});
+    col.innerHTML='<div class="wk-hdr'+(isT?' today':'')+'">'+day.slice(0,3)+'</div><div class="wk-body">'+pills+'</div>';
+    grid.appendChild(col);
+  });
+}
+
+function renderStats(){
+  var today=todayName();
+  document.getElementById('sToday').textContent=DAYS.indexOf(today)>=0?today:'—';
+  document.getElementById('sWeek').textContent='W/O '+weekOf();
+  document.getElementById('hdrDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+}
+
+function resetAll(){ Object.keys(S).forEach(function(k){S[k]=false;}); save(); renderAll(); var st=document.getElementById('submitStatus'); st.className='submit-status'; st.style.display='none'; }
+
+function submitCheckin(){
+  var btn=document.getElementById('submitBtn'), st=document.getElementById('submitStatus');
+  btn.disabled=true; btn.textContent='Submitting...';
+  var today=todayName(), d=WEEK[today]||{};
+  var dailyDone=[]; DAILY.forEach(function(i){if(S[i.id])dailyDone.push(i.text);});
+  var dayDone=[];
+  (d.focus||[]).forEach(function(t,i){if(S[iid(today,'focus',i)])dayDone.push(t);});
+  (d.ops||[]).forEach(function(t,i){if(S[iid(today,'ops',i)])dayDone.push(t);});
+  var payload={
+    dm:DM_NAME,
+    date:new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}),
+    day:today, dailyComplete:dailyDone.length, dailyTotal:DAILY.length,
+    dayComplete:dayDone.length, dayTotal:allIds(today).length,
+    dailyItems:dailyDone.join(' | '), dayItems:dayDone.join(' | '),
+    timestamp:new Date().toISOString()
+  };
+  fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(){
+      st.className='submit-status s-ok';
+      st.innerHTML='&#10003; Check-in submitted successfully!';
+    })
+    .catch(function(){
+      st.className='submit-status s-err';
+      st.innerHTML='&#9888; Submission failed — please try again.';
+    })
+    .finally(function(){
+      btn.disabled=false;
+      btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit today\'s check-in';
+    });
+}
+
+function renderAll(){ renderStats(); renderDaily(); renderTabs(); renderDayList(); renderWeek(); }
+load(); renderAll();
+</script>
+</body>
+</html>

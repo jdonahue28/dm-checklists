@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RD Dashboard — DM Daily Check-ins</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand:   #1F3864;
+    --brand2:  #2E5FA3;
+    --bg:      #ffffff;
+    --bg2:     #f4f4f4;
+    --bg3:     #e8e8e8;
+    --text:    #1a1a1a;
+    --muted:   #616161;
+    --border:  #d0d0d0;
+    --pass-bg: #e6f4ea; --pass-fg: #1e7145; --pass-bd: #a8d5b5;
+    --warn-bg: #fff8e1; --warn-fg: #7f6000; --warn-bd: #ffe082;
+    --info-bg: #e3eeff; --info-fg: #1a56a4; --info-bd: #90b8f8;
+    --fail-bg: #fdecea; --fail-fg: #b00020; --fail-bd: #f5a0a0;
+    --radius:  8px;
+    --font:    'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  }
+  body { font-family: var(--font); background: var(--bg2); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  .hdr { background: var(--brand); color: #fff; padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .hdr h1 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .hdr .sub { font-size: 11px; opacity: .75; margin-top: 2px; }
+  .hdr-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+  .hdr-date { font-size: 11px; opacity: .8; }
+  .btn-refresh { font-size: 11px; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 5px; }
+  .btn-refresh:hover { background: rgba(255,255,255,.12); }
+
+  .page { max-width: 960px; margin: 0 auto; padding: 14px 16px 40px; }
+
+  .setup-box { background: var(--info-bg); border: 1px solid var(--info-bd); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+  .setup-box h3 { font-size: 13px; font-weight: 700; color: var(--info-fg); margin-bottom: 6px; }
+  .setup-box p  { font-size: 12px; color: var(--info-fg); line-height: 1.6; margin-bottom: 4px; }
+  .url-row { display: flex; gap: 8px; margin-top: 8px; }
+  .url-row input { flex: 1; padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; font-family: var(--font); }
+  .url-row button { padding: 8px 16px; border-radius: var(--radius); border: none; background: var(--brand); color: #fff; cursor: pointer; font-size: 12px; font-family: var(--font); font-weight: 600; white-space: nowrap; }
+
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+  .stat { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+  .stat-val { font-size: 18px; font-weight: 700; color: var(--text); }
+
+  .section-lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+
+  .dm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 10px; margin-bottom: 16px; }
+
+  .dm-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .dm-card-hdr { padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .dm-card-hdr.ok   { background: var(--pass-bg); border-bottom-color: var(--pass-bd); }
+  .dm-card-hdr.miss { background: var(--fail-bg); border-bottom-color: var(--fail-bd); }
+  .dm-nm { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+  .dm-card-hdr.ok   .dm-nm { color: var(--pass-fg); }
+  .dm-card-hdr.miss .dm-nm { color: var(--fail-fg); }
+  .badge { font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 700; }
+  .b-ok   { background: var(--pass-fg); color: #fff; }
+  .b-miss { background: var(--fail-fg); color: #fff; }
+
+  .dm-card-body { padding: 12px 14px; }
+  .dm-sub { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+
+  .dm-stats2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .ds { background: var(--bg2); border-radius: 6px; padding: 7px 9px; }
+  .ds-lbl { font-size: 10px; color: var(--muted); }
+  .ds-val { font-size: 16px; font-weight: 700; color: var(--text); }
+
+  .mini-prog { margin-bottom: 6px; }
+  .mp-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+  .mp-track { height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .mp-fill  { height: 5px; border-radius: 3px; background: var(--pass-fg); }
+
+  .completed-items { font-size: 11px; color: var(--muted); line-height: 1.9; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .ci-done { color: var(--pass-fg); display: block; }
+
+  .no-data { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
+
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .hist-table th { padding: 8px 10px; text-align: left; font-weight: 700; font-size: 11px; color: #fff; background: var(--brand); border-bottom: 2px solid var(--brand2); white-space: nowrap; }
+  .hist-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .hist-table tr:last-child td { border-bottom: none; }
+  .hist-table tr:hover td { background: var(--bg2); }
+
+  .pct-pill { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 700; }
+  .ph { background: var(--pass-bg); color: var(--pass-fg); }
+  .pm { background: var(--warn-bg); color: var(--warn-fg); }
+  .pl { background: var(--fail-bg); color: var(--fail-fg); }
+
+  .loading { display: flex; align-items: center; gap: 8px; justify-content: center; padding: 24px; color: var(--muted); font-size: 13px; }
+  .spin { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--brand2); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width:520px) { .stats { grid-template-columns: repeat(2,1fr); } }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <h1>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      RD Dashboard — DM Daily Check-ins
+    </h1>
+    <div class="sub">Vantedge Auto — Regional Director View</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-date" id="hdrDate"></div>
+    <button class="btn-refresh" onclick="loadData()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<div class="page">
+
+  <div class="setup-box" id="setupBox">
+    <h3>&#9881; One-time setup — paste your Google Apps Script URL</h3>
+    <p>Complete the Google Sheets setup from the instructions file, then paste your Web App URL below. Only needs to be done once.</p>
+    <div class="url-row">
+      <input type="text" id="urlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec">
+      <button onclick="saveUrl()">Save &amp; Connect</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-lbl">Submitted today</div><div class="stat-val" id="sSub">—</div></div>
+    <div class="stat"><div class="stat-lbl">Avg daily %</div><div class="stat-val" id="sAvgD">—</div></div>
+    <div class="stat"><div class="stat-lbl">Avg day-specific %</div><div class="stat-val" id="sAvgS">—</div></div>
+    <div class="stat"><div class="stat-lbl">Last refresh</div><div class="stat-val" id="sRefresh" style="font-size:13px">—</div></div>
+  </div>
+
+  <div class="section-lbl">Today's status — all district managers</div>
+  <div class="dm-grid" id="dmGrid">
+    <div class="loading"><span class="spin"></span> Loading check-in data...</div>
+  </div>
+
+  <div class="card">
+    <div class="section-lbl" style="margin-bottom:10px">Submission history — last 30 entries</div>
+    <div id="histWrap"><div class="no-data">No history yet — data will appear once DMs start submitting.</div></div>
+  </div>
+
+</div>
+
+<script>
+// ── UPDATE THESE WITH REAL DM NAMES ────────────────────
+var DM_NAMES = ['Adam','David','Randy','Cortney','Justin'];
+// ────────────────────────────────────────────────────────
+
+var URL_KEY = 'rd_dash_url_v3';
+var sheetUrl = localStorage.getItem(URL_KEY) || '';
+
+function saveUrl(){
+  var v = document.getElementById('urlInput').value.trim();
+  if(!v) return;
+  sheetUrl = v;
+  localStorage.setItem(URL_KEY, v);
+  document.getElementById('setupBox').style.display = 'none';
+  loadData();
+}
+
+function todayStr(){
+  return new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});
+}
+
+function pctCls(p){ return p>=100?'ph':p>=50?'pm':'pl'; }
+
+function userIcon(){
+  return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+}
+
+function checkIcon(){
+  return '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><polyline points="20 6 9 17 4 12"/></svg>';
+}
+
+function renderGrid(todayRows){
+  var grid = document.getElementById('dmGrid');
+  grid.innerHTML = '';
+  var subCt=0, dSum=0, sSum=0;
+
+  DM_NAMES.forEach(function(name){
+    var row = null;
+    for(var i=0;i<todayRows.length;i++){ if(todayRows[i].dm===name){row=todayRows[i];break;} }
+    var submitted = !!row;
+    if(submitted) subCt++;
+
+    var card = document.createElement('div');
+    card.className = 'dm-card';
+
+    var body = '';
+    if(submitted){
+      var dT = parseInt(row.dailyTotal)||0;
+      var dC = parseInt(row.dailyComplete)||0;
+      var sT = parseInt(row.dayTotal)||0;
+      var sC = parseInt(row.dayComplete)||0;
+      var dPct = dT>0?Math.round(dC/dT*100):0;
+      var sPct = sT>0?Math.round(sC/sT*100):0;
+      dSum+=dPct; sSum+=sPct;
+      var time = row.timestamp ? new Date(row.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : '';
+      var doneItems = row.dailyItems ? row.dailyItems.split(' | ').filter(Boolean) : [];
+
+      body = '<div class="dm-card-body">'
+        + '<div class="dm-sub">'+row.day+' &bull; Submitted at '+time+'</div>'
+        + '<div class="dm-stats2">'
+        +   '<div class="ds"><div class="ds-lbl">Daily items</div><div class="ds-val">'+dC+'/'+dT+'</div></div>'
+        +   '<div class="ds"><div class="ds-lbl">Day-specific</div><div class="ds-val">'+sC+'/'+sT+'</div></div>'
+        + '</div>'
+        + '<div class="mini-prog"><div class="mp-row"><span>Daily progress</span><span>'+dPct+'%</span></div><div class="mp-track"><div class="mp-fill" style="width:'+dPct+'%"></div></div></div>'
+        + '<div class="mini-prog"><div class="mp-row"><span>Day-specific progress</span><span>'+sPct+'%</span></div><div class="mp-track"><div class="mp-fill" style="width:'+sPct+'%;background:#2E5FA3"></div></div></div>';
+
+      if(doneItems.length){
+        body += '<div class="completed-items"><strong style="font-size:10px;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:3px;color:var(--muted)">Completed:</strong>';
+        doneItems.forEach(function(t){ body += '<span class="ci-done">'+checkIcon()+' '+t+'</span>'; });
+        body += '</div>';
+      }
+      body += '</div>';
+    } else {
+      body = '<div class="dm-card-body"><div class="no-data" style="padding:14px 0">No check-in received yet today.</div></div>';
+    }
+
+    card.innerHTML = '<div class="dm-card-hdr '+(submitted?'ok':'miss')+'">'
+      + '<div class="dm-nm">'+userIcon()+' '+name+'</div>'
+      + '<span class="badge '+(submitted?'b-ok':'b-miss')+'">'+(submitted?'Submitted':'Not submitted')+'</span>'
+      + '</div>'+body;
+    grid.appendChild(card);
+  });
+
+  document.getElementById('sSub').textContent = subCt+' / 5';
+  document.getElementById('sAvgD').textContent = subCt>0 ? Math.round(dSum/subCt)+'%' : '—';
+  document.getElementById('sAvgS').textContent = subCt>0 ? Math.round(sSum/subCt)+'%' : '—';
+  document.getElementById('sRefresh').textContent = new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+function renderHistory(rows){
+  var wrap = document.getElementById('histWrap');
+  if(!rows.length){ wrap.innerHTML='<div class="no-data">No submissions yet.</div>'; return; }
+  var recent = rows.slice().reverse().slice(0,30);
+  var html = '<div style="overflow-x:auto"><table class="hist-table"><thead><tr>'
+    + '<th>DM</th><th>Date</th><th>Day</th><th>Daily</th><th>Day-Specific</th><th>Time</th>'
+    + '</tr></thead><tbody>';
+  recent.forEach(function(r){
+    var dT=parseInt(r.dailyTotal)||0, dC=parseInt(r.dailyComplete)||0;
+    var sT=parseInt(r.dayTotal)||0,   sC=parseInt(r.dayComplete)||0;
+    var dPct=dT>0?Math.round(dC/dT*100):0;
+    var sPct=sT>0?Math.round(sC/sT*100):0;
+    var time=r.timestamp?new Date(r.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'—';
+    html += '<tr>'
+      + '<td><strong>'+r.dm+'</strong></td>'
+      + '<td>'+r.date+'</td>'
+      + '<td>'+r.day+'</td>'
+      + '<td><span class="pct-pill '+pctCls(dPct)+'">'+dC+'/'+dT+' ('+dPct+'%)</span></td>'
+      + '<td><span class="pct-pill '+pctCls(sPct)+'">'+sC+'/'+sT+' ('+sPct+'%)</span></td>'
+      + '<td style="color:var(--muted)">'+time+'</td>'
+      + '</tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = html;
+}
+
+function loadData(){
+  if(!sheetUrl || sheetUrl.indexOf('PASTE')>=0){
+    renderGrid([]); renderHistory([]); return;
+  }
+  document.getElementById('dmGrid').innerHTML = '<div class="loading"><span class="spin"></span> Loading...</div>';
+  fetch(sheetUrl+'?action=get')
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      var rows = data.rows || [];
+      var today = todayStr();
+      var todayRows = rows.filter(function(r){ return r.date===today; });
+      renderGrid(todayRows);
+      renderHistory(rows);
+    })
+    .catch(function(){
+      document.getElementById('dmGrid').innerHTML = '<div class="no-data" style="color:var(--fail-fg)">Could not load data. Check your Apps Script URL is deployed correctly with access set to <strong>Anyone</strong>.</div>';
+    });
+}
+
+function init(){
+  document.getElementById('hdrDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  if(sheetUrl && sheetUrl.indexOf('PASTE')<0){
+    document.getElementById('setupBox').style.display = 'none';
+    document.getElementById('urlInput').value = sheetUrl;
+  }
+  loadData();
+  setInterval(loadData, 5*60*1000);
+}
+init();
+</script>
+</body>
+</html>
