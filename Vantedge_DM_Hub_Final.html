@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vantedge Auto — DM Checklist Hub</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand:   #1F3864;
+    --brand2:  #2E5FA3;
+    --bg:      #ffffff;
+    --bg2:     #f4f4f4;
+    --bg3:     #e8e8e8;
+    --text:    #1a1a1a;
+    --muted:   #616161;
+    --border:  #d0d0d0;
+    --pass-bg: #e6f4ea; --pass-fg: #1e7145; --pass-bd: #a8d5b5;
+    --warn-bg: #fff8e1; --warn-fg: #7f6000; --warn-bd: #ffe082;
+    --info-bg: #e3eeff; --info-fg: #1a56a4; --info-bd: #90b8f8;
+    --fail-bg: #fdecea; --fail-fg: #b00020; --fail-bd: #f5a0a0;
+    --radius:  8px;
+    --font:    'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  }
+  body { font-family: var(--font); background: var(--bg2); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* ── HEADER ── */
+  .hdr { background: var(--brand); color: #fff; padding: 12px 20px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+  .hdr h1 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .hdr .sub { font-size: 11px; opacity: .75; margin-top: 2px; }
+  .hdr-right { display: flex; align-items: center; gap: 10px; }
+  .hdr-date { font-size: 11px; opacity: .8; }
+  .switch-btn { font-size: 11px; padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; cursor: pointer; font-family: var(--font); }
+  .switch-btn:hover { background: rgba(255,255,255,.12); }
+
+  /* ── SELECTOR SCREEN ── */
+  .selector-screen { max-width: 500px; margin: 60px auto; padding: 0 16px; }
+  .selector-card { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+  .selector-hdr { background: var(--brand); padding: 28px 24px; text-align: center; }
+  .selector-hdr h2 { color: #fff; font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .selector-hdr p { color: rgba(255,255,255,.75); font-size: 13px; }
+  .selector-body { padding: 24px; }
+  .selector-label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+  .name-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .name-btn { padding: 12px 10px; border-radius: var(--radius); border: 1.5px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all .12s; text-align: center; }
+  .name-btn:hover { border-color: var(--brand2); background: var(--info-bg); color: var(--info-fg); }
+  .name-btn.rd { grid-column: 1 / -1; background: var(--brand); color: #fff; border-color: var(--brand); font-size: 14px; padding: 14px; }
+  .name-btn.rd:hover { background: var(--brand2); }
+  .remember-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 12px; }
+
+  /* ── MAIN PAGE ── */
+  .page { max-width: 780px; margin: 0 auto; padding: 14px 16px 40px; }
+  .page.wide { max-width: 960px; }
+
+  /* ── STATS ── */
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 14px; }
+  .stat { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+  .stat-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+  .stat-val { font-size: 18px; font-weight: 700; color: var(--text); }
+
+  /* ── CARD ── */
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 12px; }
+  .card-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .card-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+  /* ── PROGRESS ── */
+  .prog-wrap { margin-bottom: 10px; }
+  .prog-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .prog-track { height: 6px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+  .prog-fill { height: 6px; border-radius: 4px; background: var(--pass-fg); transition: width .35s ease; }
+
+  /* ── CHECKLIST ── */
+  .checklist { display: flex; flex-direction: column; gap: 5px; }
+  .ci { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); cursor: pointer; user-select: none; transition: background .12s; }
+  .ci:hover { background: var(--bg2); }
+  .ci.done { background: var(--pass-bg); border-color: var(--pass-bd); }
+  .ci-box { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg); }
+  .ci.done .ci-box { background: var(--pass-fg); border-color: var(--pass-fg); }
+  .ci-check { display: none; }
+  .ci.done .ci-check { display: block; }
+  .ci-text { font-size: 13px; color: var(--text); flex: 1; line-height: 1.4; }
+  .ci.done .ci-text { color: var(--pass-fg); text-decoration: line-through; text-decoration-color: var(--pass-bd); }
+  .ci-tag { font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 700; flex-shrink: 0; }
+  .t-daily { background: var(--info-bg); color: var(--info-fg); }
+  .t-focus { background: var(--warn-bg); color: var(--warn-fg); }
+  .t-ops   { background: var(--bg3); color: var(--muted); }
+
+  .grp-lbl { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding: 10px 2px 5px; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tab { font-size: 12px; padding: 6px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; font-family: var(--font); font-weight: 500; }
+  .tab.active { background: var(--info-bg); color: var(--info-fg); border-color: var(--info-bd); font-weight: 700; }
+  .tab:hover:not(.active) { background: var(--bg2); }
+  .tab.today-tab { border-color: var(--pass-bd); }
+
+  /* ── BUTTONS ── */
+  .btn-reset { font-size: 11px; padding: 5px 11px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 5px; }
+  .btn-reset:hover { background: var(--bg2); }
+  .btn-submit { width: 100%; padding: 13px; border-radius: var(--radius); border: none; background: var(--brand); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--font); display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .15s; }
+  .btn-submit:hover { opacity: .88; }
+  .btn-submit:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-refresh { font-size: 11px; padding: 4px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; cursor: pointer; font-family: var(--font); }
+  .btn-refresh:hover { background: rgba(255,255,255,.12); }
+
+  /* ── STATUS ── */
+  .submit-status { margin-top: 8px; padding: 10px 13px; border-radius: var(--radius); font-size: 13px; text-align: center; display: none; font-weight: 600; }
+  .s-ok  { background: var(--pass-bg); color: var(--pass-fg); border: 1px solid var(--pass-bd); display: block; }
+  .s-err { background: var(--fail-bg); color: var(--fail-fg); border: 1px solid var(--fail-bd); display: block; }
+  .all-done { display: none; background: var(--pass-bg); border: 1px solid var(--pass-bd); border-radius: var(--radius); padding: 11px 14px; font-size: 13px; font-weight: 700; color: var(--pass-fg); margin-top: 8px; text-align: center; }
+  .all-done.show { display: block; }
+
+  /* ── WEEK GRID ── */
+  .week-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
+  .wk-col { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .wk-hdr { padding: 7px 6px; font-size: 11px; font-weight: 700; text-align: center; background: var(--bg2); border-bottom: 1px solid var(--border); }
+  .wk-hdr.today { background: var(--info-bg); color: var(--info-fg); }
+  .wk-body { padding: 6px; display: flex; flex-direction: column; gap: 3px; }
+  .wk-pill { font-size: 10px; padding: 3px 5px; border-radius: 4px; line-height: 1.4; color: var(--muted); background: var(--bg2); }
+  .wk-pill.focus { background: var(--info-bg); color: var(--info-fg); }
+
+  /* ── RD DASHBOARD ── */
+  .setup-box { background: var(--info-bg); border: 1px solid var(--info-bd); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+  .setup-box h3 { font-size: 13px; font-weight: 700; color: var(--info-fg); margin-bottom: 6px; }
+  .setup-box p  { font-size: 12px; color: var(--info-fg); line-height: 1.6; margin-bottom: 4px; }
+  .url-row { display: flex; gap: 8px; margin-top: 8px; }
+  .url-row input { flex: 1; padding: 8px 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; font-family: var(--font); }
+  .url-row button { padding: 8px 16px; border-radius: var(--radius); border: none; background: var(--brand); color: #fff; cursor: pointer; font-size: 12px; font-family: var(--font); font-weight: 600; }
+  .section-lbl { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+  .dm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px,1fr)); gap: 10px; margin-bottom: 16px; }
+  .dm-card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .dm-card-hdr { padding: 11px 14px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .dm-card-hdr.ok   { background: var(--pass-bg); border-bottom-color: var(--pass-bd); }
+  .dm-card-hdr.miss { background: var(--fail-bg); border-bottom-color: var(--fail-bd); }
+  .dm-nm { font-size: 13px; font-weight: 700; }
+  .dm-card-hdr.ok   .dm-nm { color: var(--pass-fg); }
+  .dm-card-hdr.miss .dm-nm { color: var(--fail-fg); }
+  .badge { font-size: 10px; padding: 3px 10px; border-radius: 20px; font-weight: 700; }
+  .b-ok   { background: var(--pass-fg); color: #fff; }
+  .b-miss { background: var(--fail-fg); color: #fff; }
+  .dm-card-body { padding: 12px 14px; }
+  .dm-sub { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+  .dm-stats2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+  .ds { background: var(--bg2); border-radius: 6px; padding: 7px 9px; }
+  .ds-lbl { font-size: 10px; color: var(--muted); }
+  .ds-val { font-size: 16px; font-weight: 700; }
+  .mini-prog { margin-bottom: 6px; }
+  .mp-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+  .mp-track { height: 5px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .mp-fill  { height: 5px; border-radius: 3px; background: var(--pass-fg); }
+  .completed-items { font-size: 11px; color: var(--muted); line-height: 1.9; margin-top: 6px; border-top: 1px solid var(--border); padding-top: 8px; }
+  .ci-done-item { color: var(--pass-fg); display: block; }
+  .no-data { text-align: center; padding: 20px; color: var(--muted); font-size: 13px; }
+  .hist-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .hist-table th { padding: 8px 10px; text-align: left; font-weight: 700; font-size: 11px; color: #fff; background: var(--brand); border-bottom: 2px solid var(--brand2); white-space: nowrap; }
+  .hist-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .hist-table tr:last-child td { border-bottom: none; }
+  .hist-table tr:hover td { background: var(--bg2); }
+  .pct-pill { display: inline-block; font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 700; }
+  .ph { background: var(--pass-bg); color: var(--pass-fg); }
+  .pm { background: var(--warn-bg); color: var(--warn-fg); }
+  .pl { background: var(--fail-bg); color: var(--fail-fg); }
+  .spin { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--brand2); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hidden { display: none !important; }
+  @media (max-width:520px) { .stats { grid-template-columns: repeat(2,1fr); } .week-grid { grid-template-columns: repeat(2,1fr); } .name-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div>
+    <h1>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 12 2 2 4-4"/></svg>
+      Vantedge Auto — DM Checklist Hub
+    </h1>
+    <div class="sub" id="hdrSub">Select your name to begin</div>
+  </div>
+  <div class="hdr-right">
+    <div class="hdr-date" id="hdrDate"></div>
+    <button class="switch-btn hidden" id="switchBtn" onclick="showSelector()">Switch user</button>
+    <button class="btn-refresh hidden" id="refreshBtn" onclick="loadDashboard()">&#8635; Refresh</button>
+  </div>
+</div>
+
+<!-- SELECTOR SCREEN -->
+<div id="selectorScreen">
+  <div class="selector-screen">
+    <div class="selector-card">
+      <div class="selector-hdr">
+        <h2>Who are you?</h2>
+        <p>Select your name — we'll remember it next time</p>
+      </div>
+      <div class="selector-body">
+        <div class="selector-label">Regional Director</div>
+        <div style="margin-bottom:16px">
+          <button class="name-btn rd" onclick="selectUser('RD')">&#9660; RD Dashboard — Jason</button>
+        </div>
+        <div class="selector-label">District Managers</div>
+        <div class="name-grid">
+          <button class="name-btn" onclick="selectUser('Adam')">Adam</button>
+          <button class="name-btn" onclick="selectUser('David')">David</button>
+          <button class="name-btn" onclick="selectUser('Randy')">Randy</button>
+          <button class="name-btn" onclick="selectUser('Cortney')">Cortney</button>
+          <button class="name-btn" onclick="selectUser('Justin')">Justin</button>
+        </div>
+        <div class="remember-note">&#128274; Your selection is saved on this device</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DM CHECKLIST VIEW -->
+<div id="dmView" class="hidden">
+  <div class="page">
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">Daily items</div><div class="stat-val" id="sDail">0/5</div></div>
+      <div class="stat"><div class="stat-lbl">Day-specific</div><div class="stat-val" id="sSpec">—</div></div>
+      <div class="stat"><div class="stat-lbl">Today</div><div class="stat-val" id="sToday">—</div></div>
+      <div class="stat"><div class="stat-lbl">Week of</div><div class="stat-val" id="sWeek">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">Daily focus items <span style="font-weight:400;text-transform:none;font-size:10px">(every day)</span></div>
+        <button class="btn-reset" onclick="resetAll()">&#8635; Reset</button>
+      </div>
+      <div class="prog-wrap">
+        <div class="prog-row"><span id="dProgTxt">0 of 5 complete</span><span id="dProgPct">0%</span></div>
+        <div class="prog-track"><div class="prog-fill" id="dProgFill" style="width:0%"></div></div>
+      </div>
+      <div class="checklist" id="dailyList"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">Day-specific items</div>
+      <div class="tabs" id="dayTabs"></div>
+      <div class="prog-wrap" id="sProgWrap" style="display:none">
+        <div class="prog-row"><span id="sProgTxt"></span><span id="sProgPct"></span></div>
+        <div class="prog-track"><div class="prog-fill" id="sProgFill" style="width:0%;background:var(--brand2)"></div></div>
+      </div>
+      <div id="dayChecklist"></div>
+      <div class="all-done" id="allDone">&#10003; All items complete — great leadership today!</div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">Submit daily check-in to Regional Director</div>
+      <button class="btn-submit" id="submitBtn" onclick="submitCheckin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Submit today's check-in
+      </button>
+      <div class="submit-status" id="submitStatus"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:10px">Week at a glance</div>
+      <div class="week-grid" id="weekGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- RD DASHBOARD VIEW -->
+<div id="rdView" class="hidden">
+  <div class="page wide">
+    <div class="setup-box hidden" id="setupBox">
+      <h3>&#9881; One-time setup — paste your Google Apps Script URL</h3>
+      <p>Complete the Google Sheets setup, then paste your Web App URL below. Only needs to be done once.</p>
+      <div class="url-row">
+        <input type="text" id="urlInput" placeholder="https://script.google.com/macros/s/YOUR_ID/exec">
+        <button onclick="saveUrl()">Save &amp; Connect</button>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-lbl">Submitted today</div><div class="stat-val" id="rdSub">—</div></div>
+      <div class="stat"><div class="stat-lbl">Avg daily %</div><div class="stat-val" id="rdAvgD">—</div></div>
+      <div class="stat"><div class="stat-lbl">Avg day-specific %</div><div class="stat-val" id="rdAvgS">—</div></div>
+      <div class="stat"><div class="stat-lbl">Last refresh</div><div class="stat-val" id="rdRefresh" style="font-size:13px">—</div></div>
+    </div>
+    <div class="section-lbl">Today's status — all district managers</div>
+    <div class="dm-grid" id="dmGrid">
+      <div class="no-data"><span class="spin"></span> Loading...</div>
+    </div>
+    <div class="card">
+      <div class="section-lbl" style="margin-bottom:10px">Submission history</div>
+      <div id="histWrap"><div class="no-data">No submissions yet.</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+var DM_NAMES   = ['Adam','David','Randy','Cortney','Justin'];
+var SHEET_URL  = 'https://script.google.com/macros/s/AKfycbxMRnYrqxnj9WFoSjmGSHtR49M7YTXDMQg_V68TBuqYA5Peqt2pZdQJXzBRTns-XMleqQ/exec';
+var URL_KEY    = 'rd_sheet_url_v1';
+var USER_KEY   = 'dmhub_user';
+// ────────────────────────────────────────────────────────
+
+var DAILY = [
+  {id:'d1', text:'Daily huddle with your team'},
+  {id:'d2', text:'Morning recap sent to Jason'},
+  {id:'d3', text:'Labor file updated'},
+  {id:'d4', text:'Depth chart updated'},
+  {id:'d5', text:'Time cards reviewed and submitted'},
+];
+
+var WEEK = {
+  Monday:    {focus:['Deposits completed and prepared for shipment','District call with shops'],                               ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Tuesday:   {focus:['Leadership call'],                                                                                       ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Wednesday: {focus:['Morning huddle focus and team development','Week to date KPI review and labor — adjustments if needed'], ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Thursday:  {focus:['Morning huddle','Captainship call','Book club meeting'],                                                 ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+  Friday:    {focus:['Morning huddle','Finish the week strong and prepare for the upcoming week'],                             ops:['Morning recap sent to Jason','Labor file updated','Depth chart updated','Time cards reviewed']},
+};
+
+var DAYS = Object.keys(WEEK);
+var currentUser = null;
+var activeDay   = null;
+var S = {};
+
+function load(user){ try{ S=JSON.parse(localStorage.getItem('dmcl_'+user)||'{}'); }catch(e){ S={}; } }
+function save(user){ try{ localStorage.setItem('dmcl_'+user, JSON.stringify(S)); }catch(e){} }
+function todayName(){ return ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][new Date().getDay()]; }
+function weekOf(){ var n=new Date(),d=n.getDay(),m=new Date(n); m.setDate(n.getDate()-(d||7)+1); return m.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function iid(day,g,i){ return day+'_'+g+'_'+i; }
+function allIds(day){ var d=WEEK[day]; if(!d) return []; var r=[]; (d.focus||[]).forEach(function(_,i){r.push(iid(day,'focus',i));}); (d.ops||[]).forEach(function(_,i){r.push(iid(day,'ops',i));}); return r; }
+function checkSVG(){ return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'; }
+
+function selectUser(name){
+  currentUser = name;
+  try{ localStorage.setItem(USER_KEY, name); }catch(e){}
+  document.getElementById('selectorScreen').classList.add('hidden');
+  document.getElementById('switchBtn').classList.remove('hidden');
+  document.getElementById('hdrSub').textContent = name === 'RD' ? 'RD Dashboard — Jason' : name + ' — District Manager';
+
+  if(name === 'RD'){
+    document.getElementById('rdView').classList.remove('hidden');
+    document.getElementById('dmView').classList.add('hidden');
+    document.getElementById('refreshBtn').classList.remove('hidden');
+    initDashboard();
+  } else {
+    document.getElementById('dmView').classList.remove('hidden');
+    document.getElementById('rdView').classList.add('hidden');
+    document.getElementById('refreshBtn').classList.add('hidden');
+    activeDay = null;
+    load(name);
+    renderAll();
+  }
+}
+
+function showSelector(){
+  document.getElementById('selectorScreen').classList.remove('hidden');
+  document.getElementById('dmView').classList.add('hidden');
+  document.getElementById('rdView').classList.add('hidden');
+  document.getElementById('switchBtn').classList.add('hidden');
+  document.getElementById('refreshBtn').classList.add('hidden');
+  document.getElementById('hdrSub').textContent = 'Select your name to begin';
+}
+
+// ── DM CHECKLIST ────────────────────────────────────────
+function mkItem(id, text, tagCls, tagTxt){
+  var done=!!S[id];
+  var el=document.createElement('div');
+  el.className='ci'+(done?' done':'');
+  el.setAttribute('role','checkbox'); el.setAttribute('aria-checked',''+done); el.setAttribute('tabindex','0');
+  el.innerHTML='<div class="ci-box"><span class="ci-check" style="color:#fff">'+checkSVG()+'</span></div>'
+    +'<span class="ci-text">'+text+'</span>'
+    +'<span class="ci-tag '+tagCls+'">'+tagTxt+'</span>';
+  var fn=function(){S[id]=!S[id];save(currentUser);renderAll();};
+  el.onclick=fn; el.onkeydown=function(e){if(e.key===' '||e.key==='Enter'){e.preventDefault();fn();}};
+  return el;
+}
+
+function renderDaily(){
+  var list=document.getElementById('dailyList'); list.innerHTML='';
+  var done=0; DAILY.forEach(function(i){if(S[i.id])done++;});
+  var pct=Math.round(done/DAILY.length*100);
+  document.getElementById('dProgTxt').textContent=done+' of '+DAILY.length+' complete';
+  document.getElementById('dProgPct').textContent=pct+'%';
+  document.getElementById('dProgFill').style.width=pct+'%';
+  document.getElementById('sDail').textContent=done+'/'+DAILY.length;
+  DAILY.forEach(function(it){list.appendChild(mkItem(it.id,it.text,'t-daily','Daily'));});
+}
+
+function renderTabs(){
+  var today=todayName();
+  if(!activeDay) activeDay=DAYS.indexOf(today)>=0?today:'Monday';
+  var wrap=document.getElementById('dayTabs'); wrap.innerHTML='';
+  DAYS.forEach(function(day){
+    var isT=day===today;
+    var b=document.createElement('button');
+    b.className='tab'+(day===activeDay?' active':'')+(isT?' today-tab':'');
+    b.textContent=day+(isT?' \u25cf':'');
+    b.onclick=function(){activeDay=day;renderTabs();renderDayList();};
+    wrap.appendChild(b);
+  });
+}
+
+function renderDayList(){
+  var day=activeDay, d=WEEK[day];
+  var wrap=document.getElementById('dayChecklist'); wrap.innerHTML='';
+  if(!d) return;
+  var ids=allIds(day), doneCt=0; ids.forEach(function(id){if(S[id])doneCt++;});
+  var total=ids.length, pct=Math.round(doneCt/total*100);
+  document.getElementById('sProgWrap').style.display='block';
+  document.getElementById('sProgTxt').textContent=doneCt+' of '+total+' complete';
+  document.getElementById('sProgPct').textContent=pct+'%';
+  document.getElementById('sProgFill').style.width=pct+'%';
+  document.getElementById('sSpec').textContent=doneCt+'/'+total;
+  [{lbl:'Focus items',key:'focus',tc:'t-focus',tt:'Focus'},{lbl:'Operational items',key:'ops',tc:'t-ops',tt:'Ops'}].forEach(function(g){
+    var items=d[g.key]||[]; if(!items.length) return;
+    var lbl=document.createElement('div'); lbl.className='grp-lbl'; lbl.textContent=g.lbl; wrap.appendChild(lbl);
+    var ul=document.createElement('div'); ul.className='checklist';
+    items.forEach(function(t,i){ul.appendChild(mkItem(iid(day,g.key,i),t,g.tc,g.tt));});
+    wrap.appendChild(ul);
+  });
+  var dd=0; DAILY.forEach(function(i){if(S[i.id])dd++;});
+  document.getElementById('allDone').className='all-done'+(doneCt===total&&dd===DAILY.length?' show':'');
+}
+
+function renderWeek(){
+  var today=todayName(), grid=document.getElementById('weekGrid'); grid.innerHTML='';
+  DAYS.forEach(function(day){
+    var d=WEEK[day], isT=day===today;
+    var col=document.createElement('div'); col.className='wk-col';
+    var pills='';
+    (d.focus||[]).forEach(function(t){pills+='<div class="wk-pill focus">'+t+'</div>';});
+    (d.ops||[]).forEach(function(t){pills+='<div class="wk-pill">'+t+'</div>';});
+    col.innerHTML='<div class="wk-hdr'+(isT?' today':'')+'">'+day.slice(0,3)+'</div><div class="wk-body">'+pills+'</div>';
+    grid.appendChild(col);
+  });
+}
+
+function renderStats(){
+  var today=todayName();
+  document.getElementById('sToday').textContent=DAYS.indexOf(today)>=0?today:'—';
+  document.getElementById('sWeek').textContent='W/O '+weekOf();
+}
+
+function resetAll(){
+  Object.keys(S).forEach(function(k){S[k]=false;}); save(currentUser); renderAll();
+  var st=document.getElementById('submitStatus'); st.className='submit-status'; st.style.display='none';
+}
+
+function submitCheckin(){
+  var btn=document.getElementById('submitBtn'), st=document.getElementById('submitStatus');
+  btn.disabled=true; btn.textContent='Submitting...';
+  var today=todayName(), d=WEEK[today]||{};
+  var dailyDone=[]; DAILY.forEach(function(i){if(S[i.id])dailyDone.push(i.text);});
+  var dayDone=[];
+  (d.focus||[]).forEach(function(t,i){if(S[iid(today,'focus',i)])dayDone.push(t);});
+  (d.ops||[]).forEach(function(t,i){if(S[iid(today,'ops',i)])dayDone.push(t);});
+  var shUrl = localStorage.getItem(URL_KEY) || SHEET_URL;
+  var payload={dm:currentUser, date:new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}), day:today, dailyComplete:dailyDone.length, dailyTotal:DAILY.length, dayComplete:dayDone.length, dayTotal:allIds(today).length, dailyItems:dailyDone.join(' | '), dayItems:dayDone.join(' | '), timestamp:new Date().toISOString()};
+  fetch(shUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(){ st.className='submit-status s-ok'; st.innerHTML='&#10003; Check-in submitted successfully!'; })
+    .catch(function(){ st.className='submit-status s-err'; st.innerHTML='&#9888; Submission failed — please try again.'; });
+  btn.disabled=false;
+  btn.innerHTML='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Submit today\'s check-in';
+}
+
+function renderAll(){ renderStats(); renderDaily(); renderTabs(); renderDayList(); renderWeek(); }
+
+// ── RD DASHBOARD ────────────────────────────────────────
+function saveUrl(){
+  var v=document.getElementById('urlInput').value.trim(); if(!v) return;
+  localStorage.setItem(URL_KEY,v);
+  document.getElementById('setupBox').classList.add('hidden');
+  loadDashboard();
+}
+
+function todayStr(){ return new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'}); }
+function pctCls(p){ return p>=100?'ph':p>=50?'pm':'pl'; }
+
+function renderDmGrid(todayRows){
+  var grid=document.getElementById('dmGrid'); grid.innerHTML='';
+  var subCt=0, dSum=0, sSum=0;
+  DM_NAMES.forEach(function(name){
+    var row=null; for(var i=0;i<todayRows.length;i++){if(todayRows[i].dm===name){row=todayRows[i];break;}}
+    var submitted=!!row; if(submitted) subCt++;
+    var card=document.createElement('div'); card.className='dm-card';
+    var body='';
+    if(submitted){
+      var dT=parseInt(row.dailyTotal)||0, dC=parseInt(row.dailyComplete)||0;
+      var sT=parseInt(row.dayTotal)||0,   sC=parseInt(row.dayComplete)||0;
+      var dPct=dT>0?Math.round(dC/dT*100):0, sPct=sT>0?Math.round(sC/sT*100):0;
+      dSum+=dPct; sSum+=sPct;
+      var time=row.timestamp?new Date(row.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'';
+      var doneItems=row.dailyItems?row.dailyItems.split(' | ').filter(Boolean):[];
+      body='<div class="dm-card-body"><div class="dm-sub">'+row.day+' &bull; Submitted at '+time+'</div>'
+        +'<div class="dm-stats2"><div class="ds"><div class="ds-lbl">Daily items</div><div class="ds-val">'+dC+'/'+dT+'</div></div><div class="ds"><div class="ds-lbl">Day-specific</div><div class="ds-val">'+sC+'/'+sT+'</div></div></div>'
+        +'<div class="mini-prog"><div class="mp-row"><span>Daily</span><span>'+dPct+'%</span></div><div class="mp-track"><div class="mp-fill" style="width:'+dPct+'%"></div></div></div>'
+        +'<div class="mini-prog"><div class="mp-row"><span>Day-specific</span><span>'+sPct+'%</span></div><div class="mp-track"><div class="mp-fill" style="width:'+sPct+'%;background:#2E5FA3"></div></div></div>';
+      if(doneItems.length){ body+='<div class="completed-items">'; doneItems.forEach(function(t){body+='<span class="ci-done-item">&#10003; '+t+'</span>';}); body+='</div>'; }
+      body+='</div>';
+    } else { body='<div class="dm-card-body"><div class="no-data" style="padding:14px 0">No check-in received yet today.</div></div>'; }
+    card.innerHTML='<div class="dm-card-hdr '+(submitted?'ok':'miss')+'"><div class="dm-nm">'+name+'</div><span class="badge '+(submitted?'b-ok':'b-miss')+'">'+(submitted?'Submitted':'Not submitted')+'</span></div>'+body;
+    grid.appendChild(card);
+  });
+  document.getElementById('rdSub').textContent=subCt+' / 5';
+  document.getElementById('rdAvgD').textContent=subCt>0?Math.round(dSum/subCt)+'%':'—';
+  document.getElementById('rdAvgS').textContent=subCt>0?Math.round(sSum/subCt)+'%':'—';
+  document.getElementById('rdRefresh').textContent=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+}
+
+function renderHistory(rows){
+  var wrap=document.getElementById('histWrap');
+  if(!rows.length){wrap.innerHTML='<div class="no-data">No submissions yet.</div>';return;}
+  var recent=rows.slice().reverse().slice(0,30);
+  var html='<div style="overflow-x:auto"><table class="hist-table"><thead><tr><th>DM</th><th>Date</th><th>Day</th><th>Daily</th><th>Day-Specific</th><th>Time</th></tr></thead><tbody>';
+  recent.forEach(function(r){
+    var dT=parseInt(r.dailyTotal)||0, dC=parseInt(r.dailyComplete)||0;
+    var sT=parseInt(r.dayTotal)||0,   sC=parseInt(r.dayComplete)||0;
+    var dPct=dT>0?Math.round(dC/dT*100):0, sPct=sT>0?Math.round(sC/sT*100):0;
+    var time=r.timestamp?new Date(r.timestamp).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):'—';
+    html+='<tr><td><strong>'+r.dm+'</strong></td><td>'+r.date+'</td><td>'+r.day+'</td>'
+      +'<td><span class="pct-pill '+pctCls(dPct)+'">'+dC+'/'+dT+' ('+dPct+'%)</span></td>'
+      +'<td><span class="pct-pill '+pctCls(sPct)+'">'+sC+'/'+sT+' ('+sPct+'%)</span></td>'
+      +'<td style="color:var(--muted)">'+time+'</td></tr>';
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+
+function loadDashboard(){
+  var shUrl=localStorage.getItem(URL_KEY)||SHEET_URL;
+  if(!shUrl||shUrl.indexOf('PASTE')>=0){ document.getElementById('setupBox').classList.remove('hidden'); renderDmGrid([]); renderHistory([]); return; }
+  document.getElementById('dmGrid').innerHTML='<div class="no-data"><span class="spin"></span> Loading...</div>';
+  fetch(shUrl+'?action=get')
+    .then(function(res){return res.json();})
+    .then(function(data){
+      var rows=data.rows||[], today=todayStr();
+      renderDmGrid(rows.filter(function(r){return r.date===today;}));
+      renderHistory(rows);
+    })
+    .catch(function(){ document.getElementById('dmGrid').innerHTML='<div class="no-data" style="color:var(--fail-fg)">Could not load data. Check your Apps Script URL.</div>'; });
+}
+
+function initDashboard(){
+  var shUrl=localStorage.getItem(URL_KEY)||'';
+  if(shUrl&&shUrl.indexOf('PASTE')<0){ document.getElementById('urlInput').value=shUrl; loadDashboard(); }
+  else{ document.getElementById('setupBox').classList.remove('hidden'); renderDmGrid([]); renderHistory([]); }
+  setInterval(loadDashboard, 5*60*1000);
+}
+
+// ── INIT ────────────────────────────────────────────────
+function init(){
+  document.getElementById('hdrDate').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  var saved = localStorage.getItem(USER_KEY);
+  if(saved) selectUser(saved);
+}
+init();
+</script>
+</body>
+</html>
